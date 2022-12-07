@@ -1,0 +1,1 @@
+let kernelWorker = new Worker('kernel.js');
