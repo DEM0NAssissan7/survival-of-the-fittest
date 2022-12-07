@@ -1027,6 +1027,7 @@ class SOTF {
       }
 
       this.health = 100;
+      this.timer = create_timer();
 
       this.falling = true;
       this.geneticVariation = Math.random() + 0.5;
@@ -1069,7 +1070,9 @@ class SOTF {
     }
     //Update enemy logic
     Enemy.prototype.update = function () {
-      var enemyMovementSpeed = getTransition((100 / Math.max(5, this.health)) + (self.gravityForce * 1.2 + (this.geneticVariation * 3 - 1.5)), 1000);
+      this.timer.update();
+      var enemyMovementSpeed = getTransition((100 / Math.max(5, this.health)) + (self.gravityForce * 1.2 + (this.geneticVariation * 3 - 1.5)), 1000, this.timer);
+      // console.log(this.health)
       if (this.suspend === false) {
         let currentGravityForce = getTransition(self.gravityForce, 1000);
         if (this.falling) {

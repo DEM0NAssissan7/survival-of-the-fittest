@@ -12,7 +12,7 @@
         return new Tracker();
     }
     function getTransition(size, time, timer){
-        if(timer === undefined){
+        if(!timer){
             return (Math.abs(size) / (1000 / get_performance().scheduler)) * (1000 / time);
         } else {
             return (Math.abs(size) / (1000 / timer.measured_latency)) * (1000 / time);
