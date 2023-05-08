@@ -48,6 +48,7 @@ class SOTF {
     this.world = [];
     this.guns = [];
     this.shopItems = [];
+    this.shopinit = false;
 
     this.menuState = "menu";
     this.startupScreenTimer = 72;
@@ -464,32 +465,35 @@ class SOTF {
       this.cost = this.originalPrice;
     }
     //Add shop items
-    this.shopItems.push([
-      new ShopItem(8, player => {
-        if (player.health < player.maxHealth) {
-          player.health += 20;
-          if (player.health > player.maxHealth) {
-            player.health = player.maxHealth
+    if(this.shopinit === false){
+      this.shopItems.push([
+        new ShopItem(8, player => {
+          if (player.health < player.maxHealth) {
+            player.health += 20;
+            if (player.health > player.maxHealth) {
+              player.health = player.maxHealth
+            }
+          } else {
+            player.points += 8;
           }
-        } else {
-          player.points += 8;
-        }
-      })]);
-    //Shop items
-    this.shopItems.push([
-      new ShopItem(12, player => { player.gun.smg(); }),//Up
-      new ShopItem(100, player => { player.gun.assault(); }),//Right
-      new ShopItem(400, player => { player.gun.shotgun(); }),//Down
-      new ShopItem(1000, player => { player.gun.sniper(); }),//Left
-    ]);
-    this.shopItems.push([
-      new ShopItem(50, player => { player.damageAdder++; }, 2.2),
-      new ShopItem(130, player => { player.maxHealth += 10; player.health += 10; }, 1.5),
-      new ShopItem(200, player => { player.speedMultiplier += 0.08; }, 1.9),
-      new ShopItem(500, player => { player.shotMultiplier++; }, 2.8),
-    ]);
+        })]);
+      //Shop items
+      this.shopItems.push([
+        new ShopItem(12, player => { player.gun.smg(); }),//Up
+        new ShopItem(100, player => { player.gun.assault(); }),//Right
+        new ShopItem(400, player => { player.gun.shotgun(); }),//Down
+        new ShopItem(1000, player => { player.gun.sniper(); }),//Left
+      ]);
+      this.shopItems.push([
+        new ShopItem(50, player => { player.damageAdder++; }, 2.2),
+        new ShopItem(130, player => { player.maxHealth += 10; player.health += 10; }, 1.5),
+        new ShopItem(200, player => { player.speedMultiplier += 0.08; }, 1.9),
+        new ShopItem(500, player => { player.shotMultiplier++; }, 2.8),
+      ]);
+      this.shopinit = true
+    }
     //Revive logic
-    if (this.deadPlayers.length >= 1) {
+    if (this.deadPlayers.length >= 1 && this.players.length > 1) {
       for (let i = 0; i < this.deadPlayers.length; i++) {
         this.shopItems[3][i] = new ShopItem(Math.floor(Math.pow(10, (self.level - 1) / 10 + 1)), () => {
           var currentDeadPlayer = self.deadPlayers[i];
@@ -1074,7 +1078,7 @@ class SOTF {
       var enemyMovementSpeed = getTransition((100 / Math.max(5, this.health)) + (self.gravityForce * 1.2 + (this.geneticVariation * 3 - 1.5)), 1000, this.timer);
       // console.log(this.health)
       if (this.suspend === false) {
-        let currentGravityForce = getTransition(self.gravityForce, 1000);
+        let currentGravityForce = getTransition(self.gravityForce, 1000, this.timer);
         if (this.falling) {
           this.gravity += currentGravityForce;
         } else if (!this.jumping) {
@@ -1297,72 +1301,74 @@ class SOTF {
     }
   }
   createWindow() {
-    var self = new SOTF();
+    instance = new SOTF();
     //Functions for updating game mechanics
     function drawPlayers() {
       push();
-      for (var i = self.players.length - 1; i >= 0; i--) {
-        self.players[i].moveCamera();
-        self.players[i].draw();
+      for (var i = instance.players.length - 1; i >= 0; i--) {
+        instance.players[i].moveCamera();
+        instance.players[i].draw();
       }
       pop();
     }
     function updatePlayers() {
-      for (var i = 0; i < self.players.length; i++) {
-        self.players[i].updateWorld();
-        self.players[i].update();
+      for (var i = 0; i < instance.players.length; i++) {
+        instance.players[i].updateWorld();
+        instance.players[i].update();
       }
       sleep(8);
     }
     function updatePlayersInputs() {
-      for (var i = 0; i < self.players.length; i++) {
-        self.players[i].updateInput();
+      for (var i = 0; i < instance.players.length; i++) {
+        instance.players[i].updateInput();
       }
     }
     function updatePlayerShooting() {
-      for (var i = 0; i < self.players.length; i++) {
-        self.players[i].shoot();
+      for (var i = 0; i < instance.players.length; i++) {
+        instance.players[i].shoot();
       }
     }
     function drawEnemies() {
       push();
       stroke(0);
-      for (var i in self.enemies) {
-        self.enemies[i].draw();
+      for (var i in instance.enemies) {
+        instance.enemies[i].draw();
       }
       pop();
     }
     function updateEnemies() {
-      for (var i = 0; i < self.enemies.length; i++) {
-        self.enemies[i].updateWorld();
-        self.enemies[i].update();
-        if (self.enemies.dead === true) {
-          self.enemies.splice(i, 1);
+      for (var i = 0; i < instance.enemies.length; i++) {
+        instance.enemies[i].updateWorld();
+        instance.enemies[i].update();
+        if (instance.enemies.dead === true) {
+          instance.enemies.splice(i, 1);
         }
       }
-      sleep(20);
+      sleep(10);
     }
+    let enemy_collision_timer = create_timer();
     function updateEnemyPlayerCollisions() {
-      for (var i = 0; i < self.players.length; i++) {
-        var currentPlayer = self.players[i];
-        for (var l = 0; l < self.enemies.length; l++) {
-          var currentEnemy = self.enemies[l];
-          if (currentEnemy.x + self.enemySize > currentPlayer.x && currentEnemy.x < currentPlayer.x + self.playerSize && currentEnemy.y + self.playerSize > currentPlayer.y && currentEnemy.y < currentPlayer.y + self.playerSize) {
-            currentPlayer.health -= getTransition(100, 5000);
+      enemy_collision_timer.update();
+      for (var i = 0; i < instance.players.length; i++) {
+        var currentPlayer = instance.players[i];
+        for (var l = 0; l < instance.enemies.length; l++) {
+          var currentEnemy = instance.enemies[l];
+          if (currentEnemy.x + instance.enemySize > currentPlayer.x && currentEnemy.x < currentPlayer.x + instance.playerSize && currentEnemy.y + instance.playerSize > currentPlayer.y && currentEnemy.y < currentPlayer.y + instance.playerSize) {
+            currentPlayer.health -= getTransition(100, 5000, enemy_collision_timer);
           }
         }
         if (currentPlayer.health < 0) {
-          self.deadPlayers.push(self.players[i]);
-          self.players.splice(i, 1);
+          instance.deadPlayers.push(instance.players[i]);
+          instance.players.splice(i, 1);
         }
       }
       sleep(30);
     }
     const maxEnemies = 10000;
     function capEnemyCount() {
-      if (self.enemies.length > self.levelKillGoal - self.enemiesKilled && self.enemies.length > 0) {
-        for (var i = self.enemies.length; i >= Math.min(self.levelKillGoal - self.enemiesKilled, maxEnemies); i--) {
-          self.enemies.splice(i, 1);
+      if (instance.enemies.length > instance.levelKillGoal - instance.enemiesKilled && instance.enemies.length > 0) {
+        for (var i = instance.enemies.length; i >= Math.min(instance.levelKillGoal - instance.enemiesKilled, maxEnemies); i--) {
+          instance.enemies.splice(i, 1);
         }
       }
       sleep(100);
@@ -1370,24 +1376,24 @@ class SOTF {
     //World Generation
     function generateWorld() {
       let newGenerationHeight;
-      let generationOverscan = (60 / self.groundStepWidth);
-      for (let i = 1; i < width / self.groundStepWidth + generationOverscan * 2; i++) {
-        let worldIndex = Math.abs(i + Math.floor(self.camX / self.groundStepWidth - generationOverscan));
-        if (!self.world[worldIndex]) {
+      let generationOverscan = (60 / instance.groundStepWidth);
+      for (let i = 1; i < width / instance.groundStepWidth + generationOverscan * 2; i++) {
+        let worldIndex = Math.abs(i + Math.floor(instance.camX / instance.groundStepWidth - generationOverscan));
+        if (!instance.world[worldIndex]) {
           if (worldIndex !== 0) {
-            let previousWorld = self.world[worldIndex - 1];
+            let previousWorld = instance.world[worldIndex - 1];
             for (var l = 1; previousWorld === undefined; l++) {
-              previousWorld = self.world[worldIndex - l];
+              previousWorld = instance.world[worldIndex - l];
             }
-            if (self.worldGenerationNumber > 0) {
-              self.worldGenerationNumber = Math.min(self.groundStepHeight * 15, self.worldGenerationNumber + customRandom(-self.groundStepHeight, self.groundStepHeight));
+            if (instance.worldGenerationNumber > 0) {
+              instance.worldGenerationNumber = Math.min(instance.groundStepHeight * 15, instance.worldGenerationNumber + customRandom(-instance.groundStepHeight, instance.groundStepHeight));
             } else {
-              self.worldGenerationNumber = Math.max(-(self.groundStepHeight * 15), self.worldGenerationNumber + customRandom(-self.groundStepHeight, self.groundStepHeight));
+              instance.worldGenerationNumber = Math.max(-(instance.groundStepHeight * 15), instance.worldGenerationNumber + customRandom(-instance.groundStepHeight, instance.groundStepHeight));
             }
-            newGenerationHeight = previousWorld[0] + self.worldGenerationNumber;
+            newGenerationHeight = previousWorld[0] + instance.worldGenerationNumber;
           }
           //World Features: [y, hasShop, hasFlower]
-          self.world[worldIndex] = [newGenerationHeight, (Math.random() < 0.005), (Math.random() < 0.08)];
+          instance.world[worldIndex] = [newGenerationHeight, (Math.random() < 0.005), (Math.random() < 0.08)];
         }
       }
       sleep(100);
@@ -1396,17 +1402,17 @@ class SOTF {
       push();
       noStroke();
       fill(100, 255, 100);
-      var adjustedCamX = self.camX / self.groundStepWidth;
-      for (var i = Math.floor(adjustedCamX); i < width / self.groundStepWidth + adjustedCamX; i++) {
-        let worldBlock = self.world[Math.abs(i)];
+      var adjustedCamX = instance.camX / instance.groundStepWidth;
+      for (var i = Math.floor(adjustedCamX); i < width / instance.groundStepWidth + adjustedCamX; i++) {
+        let worldBlock = instance.world[Math.abs(i)];
         if (worldBlock) {
-          translate(i * self.groundStepWidth - self.camX, worldBlock[0] - self.camY);
-          rect(0, 0, self.groundStepWidth, Math.max(height - (worldBlock[0] - self.camY), 0));
+          translate(i * instance.groundStepWidth - instance.camX, worldBlock[0] - instance.camY);
+          rect(0, 0, instance.groundStepWidth, Math.max(height - (worldBlock[0] - instance.camY), 0));
           if (worldBlock[2] === true) {
             fill(100, 255, 100);
-            rect(self.groundStepWidth / 2 - 1, -3, 2, 3);
+            rect(instance.groundStepWidth / 2 - 1, -3, 2, 3);
             fill(255, 0, 240);
-            rect(self.groundStepWidth / 2 - 2.5, -8, 5, 5);
+            rect(instance.groundStepWidth / 2 - 2.5, -8, 5, 5);
             fill(100, 255, 100);
           }
           if (worldBlock[1] === true) {
@@ -1426,7 +1432,7 @@ class SOTF {
             ellipse(50, 122, 5, 5);
             pop();
           }
-          translate(-(i * self.groundStepWidth - self.camX), -(worldBlock[0] - self.camY));
+          translate(-(i * instance.groundStepWidth - instance.camX), -(worldBlock[0] - instance.camY));
         }
       }
       pop();
@@ -1442,13 +1448,13 @@ class SOTF {
 
       fill(255);
       textSize(12);
-      text("Level: " + self.level, width / 2 + 6, 14);
-      text("Enemies Left: " + Math.max(self.levelKillGoal - self.enemiesKilled, 0), width / 2 + 70, 14);
+      text("Level: " + instance.level, width / 2 + 6, 14);
+      text("Enemies Left: " + Math.max(instance.levelKillGoal - instance.enemiesKilled, 0), width / 2 + 70, 14);
 
       //Scoreboard
       noStroke();
-      for (var i = 0; i < self.players.length; i++) {
-        var currentPlayer = self.players[i];
+      for (var i = 0; i < instance.players.length; i++) {
+        var currentPlayer = instance.players[i];
         fillPlayerNumber(currentPlayer.number);
         rect(width - 200, 20 * i, 200, 20);
         fill(0);
@@ -1463,7 +1469,7 @@ class SOTF {
       pop();
     }
     function updateGameLogic() {
-      self.updateLogic();
+      instance.updateLogic();
       sleep(30);
     }
 
@@ -1492,12 +1498,13 @@ class SOTF {
       image(backgroundCanvas, 0, 0);
     }
     function updateGame() {
-      self.update();
+      instance.update();
     }
     let logic = function(){
-      self.pid = getpid();
+      instance.pid = getpid();
       // proc().suspend = true
       suspendLogic();
+      priority(1);
       thread(updateGame);
       thread(generateWorld);
       thread(capEnemyCount);
@@ -1509,26 +1516,26 @@ class SOTF {
     }
     create_init(logic);
     function suspendLogic() {
-      suspend(self.pid);
-      console.log(self.pid)
+      suspend(instance.pid);
+      console.log(instance.pid)
     }
     function resumeLogic() {
-      resume(self.pid);
-      console.log(self.pid)
+      resume(instance.pid);
+      console.log(instance.pid)
     }
     function pauseDaemon() {
-      for (let i = 0; i < self.players.length; i++) {
-        let currentPlayer = self.players[i];
+      for (let i = 0; i < instance.players.length; i++) {
+        let currentPlayer = instance.players[i];
         if (currentPlayer.controller) {
           //TODO: Add code for pause button on controller
         } else {
           let devices = get_devices();
-          if (self.menuState === "game" && devices.keyboard.keyCodes[27]) {
-            self.menuState = "paused";
+          if (instance.menuState === "game" && devices.keyboard.keyCodes[27]) {
+            instance.menuState = "paused";
             suspendLogic();
           }
-          if (self.menuState === "paused" && devices.keyboard.keyCodes[27]) {
-            self.menuState = "game";
+          if (instance.menuState === "paused" && devices.keyboard.keyCodes[27]) {
+            instance.menuState = "game";
             resumeLogic();
           }
         }
@@ -1560,9 +1567,8 @@ class SOTF {
       draws.push(new Draw(command));
     }
     let run_draws = function(){
-      for(let i = 0; i < draws.length; i++){
+      for(let i = 0; i < draws.length; i++)
         draws[i].run();
-      }
     }
     c_draw(drawBackground);
     c_draw(renderWorld);
@@ -1579,13 +1585,20 @@ class SOTF {
       let time_before = performance.now();
       let time_delay = time_before - time_tracker;
       time_tracker = time_before;
+      // drawBackground();
+      // renderWorld();
+      // drawEnemies();
+      // updatePlayerShooting();
+      // drawPlayers();
+      // renderHud();
+      // updateGame();
+      // pauseDaemon();
       run_draws();
       displayGamePerformance(time_delay);
       sleep(16);
     };
 
     create_init(drawing_process);
-    instance = self;
   }
   iconFunction() {
     noStroke();
