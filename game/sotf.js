@@ -50,6 +50,8 @@ class SOTF {
     this.shopItems = [];
     this.shopinit = false;
 
+    this.levelTransitionTimer = create_timer();
+
     this.menuState = "menu";
     this.startupScreenTimer = 72;
     this.processes = [];
@@ -336,7 +338,8 @@ class SOTF {
       if (this.number !== undefined) {
         this.number = playerNumber;
       }
-      this.movementTimer = create_timer();
+      this.timer = create_timer();
+      this.gunTimer = create_timer();
 
       this.shopButtonPressed = false;
       this.shopMenu = false;
@@ -569,8 +572,8 @@ class SOTF {
     let horizontalScreenEdgeDeadzone = 200;
     let verticalScreenEdgeDeadzone = height / 2 - (self.playerSize * 3);
     Player.prototype.update = function () {
-      this.movementTimer.update();
-      this.currentGravityForce = getTransition(self.gravityForce, 1000, this.movementTimer) / playerUpdateRatio;
+      this.timer.update();
+      this.currentGravityForce = getTransition(self.gravityForce, 1000, this.timer) / playerUpdateRatio;
       let verticalMovementSpeed = (this.currentGravityForce * 4) / playerUpdateRatio;
       let playerMovementSpeed = (this.currentGravityForce * 3 * this.speedMultiplier) / playerUpdateRatio;
       if (!this.controller) {
@@ -689,7 +692,8 @@ class SOTF {
               this.gunFired = true;
             }
             if (this.gun.automatic === true) {
-              this.gunCooldownCounter += getAnimationExpansionRate(this.gun.fireRate, 1000);
+              this.gunTimer.update();
+              this.gunCooldownCounter += getTransition(this.gun.fireRate, 1000, this.gunTimer);
               if (this.gunShotCount <= this.gunCooldownCounter) {
                 for (var i = 0; i < this.shotMultiplier; i++) {
                   fireBullet(this.x + self.playerSize / 2, this.y + self.playerSize / 2, shotDirection, customRandom(-this.gun.spread / 100, this.gun.spread / 100), this);
@@ -1115,30 +1119,37 @@ class SOTF {
       }
       this.suspend = false;
     }
+    let percieved_enemy_x, percieved_enemy_y, anger;
+    let enemy_size = self.enemySize;
     Enemy.prototype.draw = function () {
-      if (this.x - self.camX > 0 && this.y - self.camY > 0 && this.x - self.camX + self.enemySize < width && this.y - self.camY + self.enemySize < height) {
-        fill(255, (this.health / 100) * 130, (this.health / 100) * 130);
-        rect(this.x - self.camX, this.y - self.camY, self.enemySize, self.enemySize);
+      percieved_enemy_x = this.x - self.camX;
+      percieved_enemy_y = this.y - self.camY;
+      if (percieved_enemy_x > 0 && percieved_enemy_y > 0 && percieved_enemy_x + enemy_size < width && percieved_enemy_y + enemy_size < height) {
+        anger = (this.health / 100) * 130;
+        fill(255, anger, anger);
+        rect(percieved_enemy_x, percieved_enemy_y, enemy_size, enemy_size);
       }
     }
 
-    cause_mayhem = function (){
+    this.mayhem = function(){
       for(let i = 0; i < 10000; i++){
-        self.enemies.push(new Enemy(self.enemies[0]));
+        this.enemies.push(new Enemy(this.enemies[0]));
       }
-      kill(1);
-      console.log(self.enemies.length);
+      // kill(1);
+      console.log(this.enemies.length);
+      this.uncapped = true;
     }
     self.world[0] = [height / 2, false, false];
 
     //Menu system
+    this.levelTransitionTimer.update();
     if (this.menuState === "start") {
       fill(150, 205, 150);
       rect(0, 0, width, height);
 
       fill(0);
       centerText("SOTF", width / 2 - 20, height / 2 - 20, 40, 40, 75);
-      this.startupScreenTimer -= getAnimationExpansionRate(72, 2500);
+      this.startupScreenTimer -= getTransition(72, 2500, this.levelTransitionTimer);
       if (this.startupScreenTimer <= 0) {
         this.menuState = "menu";
       }
@@ -1184,7 +1195,6 @@ class SOTF {
       }
       let devices = get_devices();
       for (let i = 0; i < devices.controllers.length; i++) {
-        console.log(devices.controllers)
         if (devices.controllers[i].buttons[0].pressed === true) {
           var controllerHasPlayer = false;
           for (let l = 0; l < this.playerBuffer.length; l++) {
@@ -1222,7 +1232,7 @@ class SOTF {
     }
 
     if (this.transitionNextLevel === true) {
-      this.nextLevelTransitionCounter += getAnimationExpansionRate(1, 1000);
+      this.nextLevelTransitionCounter += getTransition(1, 1000, this.levelTransitionTimer);
       var timeLeft = (3 - floor(this.nextLevelTransitionCounter));
       if (timeLeft <= 0) {
         this.levelKillGoal = Math.round(this.levelKillGoal * 1.5);
@@ -1331,8 +1341,8 @@ class SOTF {
     function drawEnemies() {
       push();
       stroke(0);
-      for (var i in instance.enemies) {
-        instance.enemies[i].draw();
+      for (let i = 0; i < instance.enemies.length; i++) {
+          instance.enemies[i].draw();
       }
       pop();
     }
@@ -1366,7 +1376,7 @@ class SOTF {
     }
     const maxEnemies = 10000;
     function capEnemyCount() {
-      if (instance.enemies.length > instance.levelKillGoal - instance.enemiesKilled && instance.enemies.length > 0) {
+      if (instance.enemies.length > instance.levelKillGoal - instance.enemiesKilled && instance.enemies.length > 0 && !instance.uncapped) {
         for (var i = instance.enemies.length; i >= Math.min(instance.levelKillGoal - instance.enemiesKilled, maxEnemies); i--) {
           instance.enemies.splice(i, 1);
         }
@@ -1508,12 +1518,19 @@ class SOTF {
       thread(updateGame);
       thread(generateWorld);
       thread(capEnemyCount);
-      thread(updateEnemies);
       thread(updatePlayers);
       thread(updateEnemyPlayerCollisions);
       thread(updateGameLogic);
       exit();
     }
+    // Separate enemy handling because it is what causes the most lag
+    let enemy_logic = function() {
+      priority(-1);
+      thread(updateEnemies);
+      exit();
+    }
+    create_init(enemy_logic);
+
     create_init(logic);
     function suspendLogic() {
       suspend(instance.pid);

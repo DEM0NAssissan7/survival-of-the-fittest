@@ -495,7 +495,7 @@ let canvas, graphics, webgl, bitmap;
             devices.controllers.splice(e.gamepad, 1);
         });
         function get_devices() {
-            return run_system_call(() => devices)
+            return run_system_call(() => devices);
         }
     }
 
