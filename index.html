@@ -2,15 +2,18 @@
 <html lang="en-US">
   <head>
     <meta charset="UTF-8">
-    <title>Octane Bootstrapper</title>
+    <title>Survival Of The Fittest</title>
   </head>
   <body>
+    <canvas id="crystalcanvas" style="filter: blur(3px); position: absolute"></canvas>
+
     <script src="libraries/p5.js"></script>
     <script src="init.js"></script>
-    <script src="kernel3/core/newkernel.js"></script>
-    <!-- <script src="kernel3/core/kernel.js"></script> -->
-    <!-- <script src="kernel3/core/compat.js"></script> -->
-    <script src="kernel3/extra/tools.js"></script>
+    
+    <!-- Use compatibility layer instead of actual kernel because it sucks -->
+    <script src="jskernel-compat/compat.js"></script>
+    <script src="jskernel-compat/timers.js"></script>
+    
     <script src="desktop/jtk.js"></script>
     <script src="game/sotf.js"></script>
   </body>

@@ -52,7 +52,7 @@ class SOTF {
 
     this.levelTransitionTimer = create_timer();
 
-    this.menuState = "menu";
+    this.menuState = "start";
     this.startupScreenTimer = 72;
     this.processes = [];
     this.logicProcesses = [];
@@ -526,6 +526,7 @@ class SOTF {
         }
         function shopLoop(index) {
           var currentShopGroup = self.shopItems[index];
+          if(!currentShopGroup) return;
           for (var i = 0; i < currentShopGroup.length; i++) {
             var shopTriggerButton;
             switch (i) {
@@ -1149,7 +1150,7 @@ class SOTF {
 
       fill(0);
       centerText("SOTF", width / 2 - 20, height / 2 - 20, 40, 40, 75);
-      this.startupScreenTimer -= getTransition(72, 2500, this.levelTransitionTimer);
+      this.startupScreenTimer -= getTransition(72, 3000, this.levelTransitionTimer);
       if (this.startupScreenTimer <= 0) {
         this.menuState = "menu";
       }
@@ -1232,7 +1233,7 @@ class SOTF {
     }
 
     if (this.transitionNextLevel === true) {
-      this.nextLevelTransitionCounter += getTransition(1, 1000, this.levelTransitionTimer);
+      this.nextLevelTransitionCounter += getTransition(3, 3000, this.levelTransitionTimer);
       var timeLeft = (3 - floor(this.nextLevelTransitionCounter));
       if (timeLeft <= 0) {
         this.levelKillGoal = Math.round(this.levelKillGoal * 1.5);
@@ -1258,8 +1259,11 @@ class SOTF {
     if (this.menuState === "no players") {
       //Start Game button
       function revertMenuState() {
+        // if(self.pid)
+          suspend(self.pid);
         self.menuState = "menu";
         self.world = [];
+        self.world[0] = [height / 2, false, false];
         self.enemies = [];
         self.players = [];
         self.deadPlayers = [];
@@ -1269,12 +1273,12 @@ class SOTF {
         self.levelKillGoal = 2;
         self.enemiesKilled = 0;
         for (var i = 0; i < self.shopItems.length; i++) {
-          for (var l = 0; l < self.shopItems[i].length; l++) {
-            self.shopItems[i][l].resetPrice();
+          if(self.shopItems[i]) {
+            for (var l = 0; l < self.shopItems[i].length; l++) {
+              self.shopItems[i][l].resetPrice();
+            }  
           }
         }
-        suspend(self.pid);
-        console.log(self.pid)
       }
       push();
       fill(255, 0, 0);
@@ -1306,7 +1310,7 @@ class SOTF {
         this.players[i].points += this.level;
       }
     }
-    if (this.players.length === 0) {
+    if (this.players.length === 0 && this.menuState === "game") {
       this.menuState = "no players";
     }
   }
@@ -1480,7 +1484,6 @@ class SOTF {
     }
     function updateGameLogic() {
       instance.updateLogic();
-      sleep(30);
     }
 
     //Background
@@ -1502,7 +1505,7 @@ class SOTF {
       fill(0, 0, 0);
       rect(0, 0, width, height);
       */
-      exit();
+     exit();
     });
     function drawBackground() {
       image(backgroundCanvas, 0, 0);
@@ -1513,51 +1516,22 @@ class SOTF {
     let logic = function(){
       instance.pid = getpid();
       // proc().suspend = true
-      suspendLogic();
-      priority(1);
-      thread(updateGame);
-      thread(generateWorld);
-      thread(capEnemyCount);
-      thread(updatePlayers);
-      thread(updateEnemyPlayerCollisions);
-      thread(updateGameLogic);
-      exit();
+      updateGame();
+      generateWorld();
+      capEnemyCount();
+      updatePlayers();
+      updateEnemyPlayerCollisions();
+      updateGameLogic();
     }
     // Separate enemy handling because it is what causes the most lag
     let enemy_logic = function() {
       priority(-1);
-      thread(updateEnemies);
-      exit();
+      updateEnemies();
     }
     create_init(enemy_logic);
 
     create_init(logic);
-    function suspendLogic() {
-      suspend(instance.pid);
-      console.log(instance.pid)
-    }
-    function resumeLogic() {
-      resume(instance.pid);
-      console.log(instance.pid)
-    }
-    function pauseDaemon() {
-      for (let i = 0; i < instance.players.length; i++) {
-        let currentPlayer = instance.players[i];
-        if (currentPlayer.controller) {
-          //TODO: Add code for pause button on controller
-        } else {
-          let devices = get_devices();
-          if (instance.menuState === "game" && devices.keyboard.keyCodes[27]) {
-            instance.menuState = "paused";
-            suspendLogic();
-          }
-          if (instance.menuState === "paused" && devices.keyboard.keyCodes[27]) {
-            instance.menuState = "game";
-            resumeLogic();
-          }
-        }
-      }
-    }
+    suspend(instance.pid);
 
     function displayGamePerformance(latency) {
       push();
@@ -1594,7 +1568,6 @@ class SOTF {
     c_draw(drawPlayers);
     c_draw(renderHud);
     c_draw(updateGame);
-    c_draw(pauseDaemon);
 
     //Create processes to pass into the window manager
     let time_tracker = performance.now();
@@ -1609,22 +1582,11 @@ class SOTF {
       // drawPlayers();
       // renderHud();
       // updateGame();
-      // pauseDaemon();
       run_draws();
       displayGamePerformance(time_delay);
-      sleep(16);
     };
 
     create_init(drawing_process);
-  }
-  iconFunction() {
-    noStroke();
-    fill(80, 200, 80);
-    rect(0, 0, width, height, 3);
-    fill(255, 255, 255);
-    textSize(width / 3.2);
-    text("SOTF", width / 10, height / 2.5);
-    rect(width / 10, height * 0.7, width * 0.8, height / 5);
   }
 }
 

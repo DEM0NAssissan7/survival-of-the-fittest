@@ -1,5 +1,5 @@
 const System = {
-    version: "1.2-release",
+    version: "1.3-release",
     name: "Survival of the Fittest",
 }
 
