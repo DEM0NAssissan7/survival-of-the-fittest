@@ -13,15 +13,12 @@ function create_init(handler) {
 function exit() {
 }
 
-function setup() {
-    noLoop();
-    createCanvas(window.innerWidth - 20, window.innerHeight - 20);
-}
-
 let current_process;
-var draw = function(){
-    let i;
-    for(i = 0; i < processes.length; i++) {
+let perf = {realtime: 0};
+let perf_marker = performance.now();
+let _time;
+let sched = function () {
+    for(let i = 0; i < processes.length; i++) {
         current_process = processes[i];
 
         exit = function () {
@@ -29,14 +26,15 @@ var draw = function(){
             processes.splice(i, 0);
             i--;
         }
-
         if(!current_process.suspended)
             for(let thread of current_process.threads)
                 thread();
+
+        _time = performance.now();
+        perf.realtime = _time - perf_marker;
+        perf_marker = _time;
     }
-    requestAnimationFrame(draw);
-};
-requestAnimationFrame(draw);
+}
 
 function getpid() {
     return current_process.pid;

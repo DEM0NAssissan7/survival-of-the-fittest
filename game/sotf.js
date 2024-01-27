@@ -58,6 +58,9 @@ class SOTF {
     this.logicProcesses = [];
     this.pid = 5;
 
+    this.advanced_graphics = false;
+    this.graphics_clock = 0;
+
     //gravityForce is measured in m/s
     //Every 20px is one meter ingame
     this.gravityForce = 9.8;
@@ -353,6 +356,7 @@ class SOTF {
 
       this.gun = new Gun();
       this.gun.pistol();
+      // this.gun.assault();
       this.direction = 'left';
       this.gunFired = false;
       this.gunCooldownCounter = 0;
@@ -693,8 +697,7 @@ class SOTF {
               this.gunFired = true;
             }
             if (this.gun.automatic === true) {
-              this.gunTimer.update();
-              this.gunCooldownCounter += getTransition(this.gun.fireRate, 1000, this.gunTimer);
+              this.gunCooldownCounter += getTransition(this.gun.fireRate, 1000);
               if (this.gunShotCount <= this.gunCooldownCounter) {
                 for (var i = 0; i < this.shotMultiplier; i++) {
                   fireBullet(this.x + self.playerSize / 2, this.y + self.playerSize / 2, shotDirection, customRandom(-this.gun.spread / 100, this.gun.spread / 100), this);
@@ -1299,20 +1302,42 @@ class SOTF {
     }
   }
   updateLogic() {
-    if (this.enemiesKilled >= Math.round(this.levelKillGoal) && this.menuState === "game" && this.transitionNextLevel === false) {
-      this.transitionNextLevel = true;
-      this.enemies = [];
-      for (var i = 0; i < this.players.length; i++) {
-        this.players[i].health += 15;
-        if (this.players[i].health > this.players[i].maxHealth) {
-          this.players[i].health = this.players[i].maxHealth;
+    if(this.menuState === "game") {
+      if(this.advanced_graphics)
+        this.updateLighting();
+      if (this.enemiesKilled >= Math.round(this.levelKillGoal) && this.transitionNextLevel === false) {
+        this.transitionNextLevel = true;
+        this.enemies = [];
+        for (var i = 0; i < this.players.length; i++) {
+          this.players[i].health += 15;
+          if (this.players[i].health > this.players[i].maxHealth) {
+            this.players[i].health = this.players[i].maxHealth;
+          }
+          this.players[i].points += this.level;
         }
-        this.players[i].points += this.level;
       }
+      if (this.players.length === 0) {
+        this.menuState = "no players";
+      }
+
     }
-    if (this.players.length === 0 && this.menuState === "game") {
-      this.menuState = "no players";
+  }
+  updateLighting() {
+    reset_2d_canvas();
+    for(let enemy of this.enemies) {
+      draw_rect(enemy.x - this.camX, enemy.y - this.camY, this.enemySize, this.enemySize, light => {
+        light.tmp_lum -= 0.062;
+      })  
     }
+    for(let player of this.players) {
+      draw_rect(player.x - this.camX, player.y - this.camY, this.playerSize, this.playerSize, light => {
+        light.tmp_lum -= 0.1;
+      })  
+    }
+    emit_light(width - 10, 10, 255, 255, 255, 3, 0);
+
+    canvas_2d_draw();
+    clear_objects();
   }
   createWindow() {
     instance = new SOTF();
@@ -1502,9 +1527,9 @@ class SOTF {
       //Clouds
 
       /* Emo black background
-      fill(0, 0, 0);
-      rect(0, 0, width, height);
       */
+      // backgroundCanvas.fill(0, 0, 0);
+      // backgroundCanvas.rect(0, 0, width, height);
      exit();
     });
     function drawBackground() {

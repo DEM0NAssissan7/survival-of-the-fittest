@@ -13,7 +13,7 @@
     }
     function getTransition(size, time, timer){
         if(!timer){
-            return (Math.abs(size) / (1000 / get_performance().realtime)) * (1000 / time);
+            return (Math.abs(size) / (1000 / perf.realtime)) * (1000 / time);
         } else {
             return (Math.abs(size) / (1000 / timer.measured_latency)) * (1000 / time);
         }
