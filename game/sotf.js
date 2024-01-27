@@ -356,7 +356,6 @@ class SOTF {
 
       this.gun = new Gun();
       this.gun.pistol();
-      // this.gun.assault();
       this.direction = 'left';
       this.gunFired = false;
       this.gunCooldownCounter = 0;
@@ -578,6 +577,7 @@ class SOTF {
     let verticalScreenEdgeDeadzone = height / 2 - (self.playerSize * 3);
     Player.prototype.update = function () {
       this.timer.update();
+      this.gunTimer.update();
       this.currentGravityForce = getTransition(self.gravityForce, 1000, this.timer) / playerUpdateRatio;
       let verticalMovementSpeed = (this.currentGravityForce * 4) / playerUpdateRatio;
       let playerMovementSpeed = (this.currentGravityForce * 3 * this.speedMultiplier) / playerUpdateRatio;
@@ -697,7 +697,7 @@ class SOTF {
               this.gunFired = true;
             }
             if (this.gun.automatic === true) {
-              this.gunCooldownCounter += getTransition(this.gun.fireRate, 1000);
+              this.gunCooldownCounter += getTransition(this.gun.fireRate, 1000, this.gunTimer);
               if (this.gunShotCount <= this.gunCooldownCounter) {
                 for (var i = 0; i < this.shotMultiplier; i++) {
                   fireBullet(this.x + self.playerSize / 2, this.y + self.playerSize / 2, shotDirection, customRandom(-this.gun.spread / 100, this.gun.spread / 100), this);
