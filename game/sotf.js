@@ -612,14 +612,21 @@ class SOTF {
           this.gravity += verticalMovementSpeed;
         }
         //Horizontal
-        if (this.keyboardRight) {
+        if(this.keyboardRight && this.keyboardLeft) {
+          if(this.movementDirection === "right")
+            this.direction = "left";
+          if(this.movementDirection === "left")
+            this.direction = "right"
+        } else if (this.keyboardRight) {
           this.horizontalVelocity += playerMovementSpeed;
+          this.movementDirection = "right";
           this.direction = 'right';
-        }
-        if (this.keyboardLeft) {
+        } else if (this.keyboardLeft) {
           this.horizontalVelocity -= playerMovementSpeed;
+          this.movementDirection = "left";
           this.direction = 'left';
         }
+
 
         shopLogic(this, this.keyboardShop, devices.keyboard.keyCodes[38], devices.keyboard.keyCodes[40], devices.keyboard.keyCodes[37], devices.keyboard.keyCodes[39]);
       }
@@ -1197,22 +1204,22 @@ class SOTF {
       if (this.playerBuffer.length > 0) {
         labledButton(100, 400, width - 200, 40, startMultiplayerGame, "All players are ready", 20);
       }
-      let devices = get_devices();
-      for (let i = 0; i < devices.controllers.length; i++) {
-        if (devices.controllers[i].buttons[0].pressed === true) {
+      // let devices = get_devices();
+      for (let i = 0; i < controllers.length; i++) {
+        if (controllers[i].buttons[0].pressed === true) {
           var controllerHasPlayer = false;
           for (let l = 0; l < this.playerBuffer.length; l++) {
-            if (devices.controllers[i].index === this.playerBuffer[l].controller.index) {
+            if (controllers[i].index === this.playerBuffer[l].controller.index) {
               controllerHasPlayer = true;
             }
           }
           if (controllerHasPlayer === false) {
-            this.playerBuffer.push(new Player(width / 2, 60, devices.controllers[i], this.playerBuffer.length));
+            this.playerBuffer.push(new Player(width / 2, 60, controllers[i], this.playerBuffer.length));
           }
         }
-        if (devices.controllers[i].buttons[1].pressed === true) {
+        if (controllers[i].buttons[1].pressed === true) {
           for (var l = 0; l < this.playerBuffer.length; l++) {
-            if (devices.controllers[i].index === this.playerBuffer[l].controller.index) {
+            if (controllers[i].index === this.playerBuffer[l].controller.index) {
               this.playerBuffer.splice(l, 1);
               for (var x = 0; x < this.playerBuffer.length; x++) {
                 this.playerBuffer[x].number = x;

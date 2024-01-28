@@ -58,7 +58,11 @@ let sleep = () => {};
 
 
 // Devices
-let devices = {};
+let devices = {
+    mouse: {},
+    keyboard: {},
+    controllers: []
+};
 //Mouse
 devices.mouse = {
     x: 0,
@@ -100,16 +104,8 @@ document.onkeyup = event => {
     devices.keyboard.pressed = false;
     devices.keyboard.info = event;
 };
-//Controllers
-devices.controllers = [];
-window.addEventListener("gamepadconnected", e => {
-    console.log("Device: Controller " + e.gamepad.index + " connected (" + e.gamepad.id + ")");
-    devices.controllers.push(e.gamepad);
-});
-window.addEventListener("gamepaddisconnected", e => {
-    console.log("Device: Controller " + e.gamepad.index + " disconnected (" + e.gamepad.id + ")");
-    devices.controllers.splice(e.gamepad, 1);
-});
 function get_devices() {
     return devices;
 }
+//Controllers
+devices.controllers = [];
