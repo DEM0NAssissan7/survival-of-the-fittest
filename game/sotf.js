@@ -1368,12 +1368,13 @@ class SOTF {
     let maxGroundShaderRange = Math.round(width * 4);
     let scaledX = Math.round(Math.max(0, Math.abs(this.camX) - maxGroundShaderRange) / this.groundStepWidth);
     let camDirection = this.camX - maxGroundShaderRange;
-    for(let i = scaledX + 1; i < Math.min(maxGroundShaderRange, this.world.length); i++) {
+    for(let i = scaledX + 1; i < Math.min(maxGroundShaderRange, this.world.length) + scaledX; i++) {
+        if(!this.world[i]) break;
       let y = this.world[i][0];
       if(!scaledX || (scaledX && camDirection > 0))
-        worldCoords1.push([i * this.groundStepWidth - this.camX, y - this.camY]);
+        worldCoords1.push([i * this.groundStepWidth - this.camX + this.groundStepWidth / 2, y - this.camY]);
       if(!scaledX || (scaledX && camDirection < 0))
-        worldCoords2.push([-i * this.groundStepWidth - this.camX, y - this.camY]);
+        worldCoords2.push([-i * this.groundStepWidth - this.camX + this.groundStepWidth / 2, y - this.camY]);
     }
     let worldCoords = worldCoords2.concat(worldCoords1);
     // console.log(worldCoords)
