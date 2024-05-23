@@ -15,6 +15,14 @@ let playerUpdateRatio = 1;
 let cause_mayhem = function(){};
 let draws, instance;
 
+let qrect = function(x, y, w, h) {
+  Quartz.poly([[x, y],
+            [x + w, y],
+            [x + w, y + h],
+            [x, y + h],
+            [x, y]]);
+}
+
 function customRandom(min, max) {
   return Math.random() * (max + Math.abs(min)) - Math.abs(min);
 }
@@ -58,7 +66,7 @@ class SOTF {
     this.logicProcesses = [];
     this.pid = 5;
 
-    this.advanced_graphics = false;
+    this.advanced_graphics = true;
     this.graphics_clock = 0;
 
     //gravityForce is measured in m/s
@@ -1310,7 +1318,7 @@ class SOTF {
   }
   updateLogic() {
     if(this.menuState === "game") {
-      if(this.advanced_graphics)
+      if(this.advanced_graphics == null)
         this.updateLighting();
       if (this.enemiesKilled >= Math.round(this.levelKillGoal) && this.transitionNextLevel === false) {
         this.transitionNextLevel = true;
@@ -1345,6 +1353,41 @@ class SOTF {
 
     canvas_2d_draw();
     clear_objects();
+  }
+  updateQuartz() {
+    Quartz.light(- 100000 - this.camX, - 10000 - this.camY, null);
+    for(let enemy of this.enemies)
+      qrect(enemy.x - this.camX, enemy.y - this.camY, this.enemySize, this.enemySize)  
+    for(let player of this.players)
+      qrect(player.x - this.camX, player.y - this.camY, this.playerSize, this.playerSize);
+    
+    // Ground shading
+    let worldCoords1 = [0,0]
+    let worldCoords2 = []
+
+    let maxGroundShaderRange = Math.round(width * 4);
+    let scaledX = Math.round(Math.max(0, Math.abs(this.camX) - maxGroundShaderRange) / this.groundStepWidth);
+    let camDirection = this.camX - maxGroundShaderRange;
+    for(let i = scaledX + 1; i < Math.min(maxGroundShaderRange, this.world.length); i++) {
+      let y = this.world[i][0];
+      if(!scaledX || (scaledX && camDirection > 0))
+        worldCoords1.push([i * this.groundStepWidth - this.camX, y - this.camY]);
+      if(!scaledX || (scaledX && camDirection < 0))
+        worldCoords2.push([-i * this.groundStepWidth - this.camX, y - this.camY]);
+    }
+    let worldCoords = worldCoords2.concat(worldCoords1);
+    // console.log(worldCoords)
+    Quartz.poly(worldCoords);
+
+
+    // Quartz.render(1);
+    Quartz.renderContext(drawingContext);
+    // const offscreen = Quartz.renderOffscreen();
+    // let p5offscreen = new p5.Element(offscreen);
+    // console.log(p5offscreen)
+    // image(p5offscreen, 0, 0)
+    // Quartz.render();
+
   }
   createWindow() {
     instance = new SOTF();
@@ -1422,8 +1465,9 @@ class SOTF {
     //World Generation
     function generateWorld() {
       let newGenerationHeight;
-      let generationOverscan = (60 / instance.groundStepWidth);
-      for (let i = 1; i < width / instance.groundStepWidth + generationOverscan * 2; i++) {
+      let generationOverscan = Math.round(30 / instance.groundStepWidth);
+      if(instance.advanced_graphics) generationOverscan = Math.floor(width / 4);
+      for (let i = 1; i < width / instance.groundStepWidth + generationOverscan; i++) {
         let worldIndex = Math.abs(i + Math.floor(instance.camX / instance.groundStepWidth - generationOverscan));
         if (!instance.world[worldIndex]) {
           if (worldIndex !== 0) {
@@ -1434,7 +1478,7 @@ class SOTF {
             if (instance.worldGenerationNumber > 0) {
               instance.worldGenerationNumber = Math.min(instance.groundStepHeight * 15, instance.worldGenerationNumber + customRandom(-instance.groundStepHeight, instance.groundStepHeight));
             } else {
-              instance.worldGenerationNumber = Math.max(-(instance.groundStepHeight * 15), instance.worldGenerationNumber + customRandom(-instance.groundStepHeight, instance.groundStepHeight));
+              instance.worldGenerationNumber = Math.max(-(instance.groundStepHeight * 30), instance.worldGenerationNumber + customRandom(-instance.groundStepHeight, instance.groundStepHeight));
             }
             newGenerationHeight = previousWorld[0] + instance.worldGenerationNumber;
           }
@@ -1453,7 +1497,7 @@ class SOTF {
         let worldBlock = instance.world[Math.abs(i)];
         if (worldBlock) {
           translate(i * instance.groundStepWidth - instance.camX, worldBlock[0] - instance.camY);
-          rect(0, 0, instance.groundStepWidth, Math.max(height - (worldBlock[0] - instance.camY), 0));
+          rect(0, 0, instance.groundStepWidth + 1, Math.max(height - (worldBlock[0] - instance.camY), 0));
           if (worldBlock[2] === true) {
             fill(100, 255, 100);
             rect(instance.groundStepWidth / 2 - 1, -3, 2, 3);
@@ -1462,6 +1506,7 @@ class SOTF {
             fill(100, 255, 100);
           }
           if (worldBlock[1] === true) {
+            // House
             push();
             scale(0.5);
             translate(0, -148);
@@ -1593,7 +1638,12 @@ class SOTF {
       for(let i = 0; i < draws.length; i++)
         draws[i].run();
     }
+    let draw_advanced_graphics = function() {
+      if(instance.advanced_graphics === true && instance.menuState === "game")
+        instance.updateQuartz();
+    }
     c_draw(drawBackground);
+    c_draw(draw_advanced_graphics);
     c_draw(renderWorld);
     c_draw(drawEnemies);
     c_draw(updatePlayerShooting);
